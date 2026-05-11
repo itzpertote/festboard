@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Festival Leaderboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0d0b1e;
+      --surface: #181530;
+      --surface2: #211d3a;
+      --gold: #f5c842;
+      --gold-dim: #c49a20;
+      --coral: #ff6b4a;
+      --teal: #3de8c8;
+      --text: #f0eaff;
+      --muted: #8a85a8;
+      --border: rgba(245,200,66,0.13);
+      --border2: rgba(245,200,66,0.25);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+ 
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+ 
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background-image: radial-gradient(circle, rgba(245,200,66,0.07) 1px, transparent 1px);
+      background-size: 42px 42px;
+      pointer-events: none;
+      z-index: 0;
+    }
+ 
+    body::after {
+      content: '';
+      position: fixed;
+      top: -200px; left: 50%;
+      transform: translateX(-50%);
+      width: 600px; height: 400px;
+      background: radial-gradient(ellipse, rgba(255,107,74,0.12) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+ 
+    .container {
+      position: relative;
+      z-index: 1;
+      max-width: 680px;
+      margin: 0 auto;
+      padding: 2.5rem 1.25rem 4rem;
+    }
+ 
+    /* ── Header ── */
+    .header { text-align: center; margin-bottom: 2.5rem; }
+ 
+    .header-eyebrow {
+      font-size: 11px;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      color: var(--coral);
+      margin-bottom: 10px;
+    }
+ 
+    .header h1 {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(52px, 12vw, 80px);
+      line-height: 1;
+      letter-spacing: 3px;
+      background: linear-gradient(135deg, var(--gold) 20%, var(--coral) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 10px;
+    }
+ 
+    .header-sub {
+      font-size: 13px;
+      color: var(--muted);
+      letter-spacing: 0.5px;
+    }
+ 
+    .deco {
+      display: flex; align-items: center; gap: 12px;
+      margin: 0 auto 2.5rem; max-width: 260px;
+    }
+    .deco::before, .deco::after {
+      content: ''; flex: 1; height: 1px;
+    }
+    .deco::before { background: linear-gradient(90deg, transparent, var(--gold-dim)); }
+    .deco::after  { background: linear-gradient(90deg, var(--gold-dim), transparent); }
+    .deco-center { font-size: 14px; color: var(--gold-dim); letter-spacing: 5px; }
+ 
+    /* ── Card ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 1.5rem 1.5rem;
+      margin-bottom: 1rem;
+    }
+ 
+    .card-title {
+      font-size: 11px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 1.25rem;
+    }
+ 
+    /* ── Form fields ── */
+    .field { margin-bottom: 14px; }
+    .field label {
+      display: block;
+      font-size: 11px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    .label-tag {
+      font-size: 10px;
+      padding: 1px 6px;
+      border-radius: 4px;
+      background: rgba(61,232,200,0.1);
+      color: var(--teal);
+      border: 1px solid rgba(61,232,200,0.2);
+      vertical-align: middle;
+      margin-left: 6px;
+      letter-spacing: 1px;
+    }
+    .field input {
+      width: 100%;
+      height: 42px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      font-size: 14px;
+      font-family: 'DM Sans', sans-serif;
+      padding: 0 14px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .field input:focus { border-color: rgba(245,200,66,0.45); }
+    .field input::placeholder { color: #5a5478; }
+ 
+    .row-fields { display: flex; gap: 10px; }
+    .row-fields .field { flex: 1; margin: 0; }
+    .row-fields .field:first-child { flex: 2; }
+ 
+    /* ── Buttons ── */
+    .btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      height: 40px; padding: 0 18px;
+      border-radius: 10px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px; font-weight: 500;
+      cursor: pointer;
+      border: none;
+      transition: all 0.15s;
+      text-decoration: none;
+    }
+    .btn-primary {
+      background: var(--gold);
+      color: #0d0b1e;
+    }
+    .btn-primary:hover { background: #e8b930; transform: translateY(-1px); }
+    .btn-ghost {
+      background: transparent;
+      border: 1px solid var(--border2);
+      color: var(--muted);
+    }
+    .btn-ghost:hover { border-color: rgba(245,200,66,0.4); color: var(--text); }
+    .btn-row { display: flex; gap: 8px; margin-top: 14px; }
+ 
+    /* ── Top bar of rankings card ── */
+    .topbar {
+      display: flex; align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1.25rem;
+    }
+    .topbar-left { display: flex; align-items: center; gap: 10px; }
+    .topbar-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 22px; letter-spacing: 1.5px;
+      color: var(--text);
+    }
+    .admin-badge {
+      font-size: 10px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      padding: 3px 10px;
+      border-radius: 20px;
+      background: rgba(245,200,66,0.12);
+      color: var(--gold);
+      border: 1px solid rgba(245,200,66,0.3);
+    }
+    .topbar-actions { display: flex; gap: 8px; }
+    .small-btn {
+      height: 34px; padding: 0 14px;
+      border-radius: 8px;
+      background: transparent;
+      border: 1px solid var(--border2);
+      color: var(--muted);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 12px; font-weight: 500;
+      cursor: pointer; letter-spacing: 0.5px;
+      transition: all 0.15s;
+    }
+    .small-btn:hover { border-color: rgba(245,200,66,0.4); color: var(--text); }
+ 
+    /* ── Leaderboard rows ── */
+    .lb-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 11px 14px;
+      border-radius: 12px;
+      margin-bottom: 6px;
+      background: var(--surface2);
+      border: 1px solid transparent;
+      position: relative;
+      overflow: hidden;
+      animation: slideUp 0.3s ease both;
+    }
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+ 
+    .lb-row.rank-1 { border-color: rgba(245,200,66,0.28); }
+    .lb-row.rank-2 { border-color: rgba(196,196,196,0.18); }
+    .lb-row.rank-3 { border-color: rgba(205,127,50,0.22); }
+ 
+    .lb-row::before {
+      content: '';
+      position: absolute; left: 0; top: 0; bottom: 0;
+      width: 3px;
+    }
+    .lb-row.rank-1::before { background: var(--gold); }
+    .lb-row.rank-2::before { background: #c4c4c4; }
+    .lb-row.rank-3::before { background: #cd7f32; }
+ 
+    .lb-pos {
+      width: 30px;
+      text-align: center;
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 24px;
+      flex-shrink: 0;
+      line-height: 1;
+    }
+    .lb-pos.p1 { color: var(--gold); }
+    .lb-pos.p2 { color: #c4c4c4; }
+    .lb-pos.p3 { color: #cd7f32; }
+    .lb-pos.pn { font-size: 15px; color: var(--muted); }
+ 
+    .lb-avatar {
+      width: 38px; height: 38px;
+      border-radius: 50%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 600;
+      color: var(--gold);
+      flex-shrink: 0;
+      letter-spacing: 0.5px;
+    }
+    .lb-row.rank-2 .lb-avatar { color: #c4c4c4; }
+    .lb-row.rank-3 .lb-avatar { color: #cd7f32; }
+ 
+    .lb-name { flex: 1; font-size: 15px; font-weight: 500; }
+ 
+    .lb-score {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 24px; letter-spacing: 1px;
+      min-width: 64px; text-align: right;
+    }
+    .lb-score.p1 { color: var(--gold); }
+    .lb-score.p2 { color: #c4c4c4; }
+    .lb-score.p3 { color: #cd7f32; }
+    .lb-score.pn { color: var(--text); }
+ 
+    .lb-actions { display: flex; gap: 5px; margin-left: 6px; }
+    .icon-btn {
+      width: 30px; height: 30px;
+      border-radius: 7px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; transition: all 0.15s;
+    }
+    .icon-btn:hover { background: var(--surface); color: var(--text); }
+    .icon-btn.del:hover { border-color: rgba(255,80,80,0.35); color: #ff7070; }
+ 
+    /* ── Edit input inline ── */
+    .score-edit-wrap { display: flex; align-items: center; gap: 6px; }
+    .score-edit {
+      background: rgba(245,200,66,0.08);
+      border: 1px solid rgba(245,200,66,0.35);
+      border-radius: 8px;
+      color: var(--gold);
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 20px;
+      width: 80px; padding: 3px 8px;
+      text-align: right;
+      outline: none;
+    }
+    .save-btn {
+      height: 28px; padding: 0 10px;
+      background: var(--gold); color: #0d0b1e;
+      border: none; border-radius: 6px;
+      font-size: 12px; font-weight: 600;
+      cursor: pointer;
+    }
+    .save-btn:hover { background: #e8b930; }
+ 
+    /* ── States ── */
+    .empty-state {
+      text-align: center;
+      padding: 3rem 1rem;
+      color: var(--muted);
+    }
+    .empty-icon { font-size: 36px; margin-bottom: 12px; opacity: 0.5; }
+    .empty-text { font-size: 14px; }
+ 
+    /* ── Save status ── */
+    .save-status {
+      font-size: 12px; color: var(--teal);
+      text-align: right; margin-top: 8px;
+      min-height: 18px; letter-spacing: 0.5px;
+    }
+ 
+    /* ── Error ── */
+    .err { font-size: 13px; color: #ff7070; margin-top: 10px; min-height: 18px; }
+ 
+    /* ── Notice box ── */
+    .notice {
+      margin-top: 14px;
+      padding: 12px 14px;
+      border-radius: 10px;
+      background: rgba(61,232,200,0.05);
+      border: 1px solid rgba(61,232,200,0.15);
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.7;
+    }
+    .notice strong { color: var(--teal); }
+    .notice a { color: var(--teal); text-decoration: none; }
+    .notice a:hover { text-decoration: underline; }
+ 
+    /* ── Footer ── */
+    .footer {
+      text-align: center;
+      font-size: 12px;
+      color: #3a3654;
+      margin-top: 2rem;
+      letter-spacing: 1px;
+    }
+    .status-dot {
+      display: inline-block;
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--teal);
+      margin-right: 6px;
+      vertical-align: middle;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+ 
+  <!-- Header -->
+  <header class="header">
+    <p class="header-eyebrow">✦ &nbsp; Festival Edition &nbsp; ✦</p>
+    <h1>Leaderboard</h1>
+    <p class="header-sub" id="headerSub">Live rankings · Updated in real time</p>
+  </header>
+  <div class="deco"><span class="deco-center">· · ·</span></div>
+ 
+  <!-- Login card -->
+  <div class="card" id="loginCard" style="display:none;">
+    <p class="card-title">Admin login</p>
+    <div class="field">
+      <label>Password</label>
+      <input type="password" id="pw" placeholder="Enter admin password" onkeydown="if(event.key==='Enter') doLogin()" />
+    </div>
+    <div class="field">
+      <label>GitHub token <span class="label-tag">gist scope only</span></label>
+      <input type="password" id="ghTok" placeholder="ghp_xxxxxxxxxxxxxxxx" onkeydown="if(event.key==='Enter') doLogin()" />
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="doLogin()">Login</button>
+      <button class="btn btn-ghost" onclick="closeLogin()">Cancel</button>
+    </div>
+    <p class="err" id="loginErr"></p>
+    <div class="notice">
+      <strong>How to get a safe token:</strong><br>
+      Go to <a href="https://github.com/settings/tokens/new" target="_blank">github.com/settings/tokens/new</a> → check <strong>only the "gist" scope</strong> → generate. This token can only read/write Gists — it cannot access any of your repositories or other projects. Your token is saved in this browser only.
+    </div>
+  </div>
+ 
+  <!-- Admin panel -->
+  <div class="card" id="adminCard" style="display:none;">
+    <p class="card-title">Add player</p>
+    <div class="row-fields">
+      <div class="field">
+        <label>Name</label>
+        <input type="text" id="newName" placeholder="Player name" onkeydown="if(event.key==='Enter') addPlayer()" />
+      </div>
+      <div class="field">
+        <label>Score</label>
+        <input type="number" id="newScore" placeholder="0" min="0" onkeydown="if(event.key==='Enter') addPlayer()" />
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="addPlayer()">+ Add player</button>
+    </div>
+    <p class="err" id="addErr"></p>
+    <p class="save-status" id="saveStatus"></p>
+  </div>
+ 
+  <!-- Leaderboard card -->
+  <div class="card">
+    <div class="topbar">
+      <div class="topbar-left">
+        <span class="topbar-title">Rankings</span>
+        <span class="admin-badge" id="adminBadge" style="display:none;">Admin</span>
+      </div>
+      <div class="topbar-actions">
+        <button class="small-btn" id="loginBtn" onclick="toggleLogin()">⚿ &nbsp;Admin</button>
+        <button class="small-btn" id="logoutBtn" style="display:none;" onclick="doLogout()">Logout</button>
+      </div>
+    </div>
+    <div id="boardWrap">
+      <div class="empty-state">
+        <div class="empty-icon">🏆</div>
+        <div class="empty-text">Loading leaderboard…</div>
+      </div>
+    </div>
+  </div>
+ 
+  <p class="footer">
+    <span class="status-dot"></span>
+    Data synced via GitHub Gist
+  </p>
+ 
+</div>
+ 
+<script>
+// ── CONFIG ─────────────────────────────────────────────────────────────────
+// Change this to your desired admin password before uploading to GitHub Pages
+const ADMIN_PASSWORD = "festivalabc123";
+const GIST_FILENAME  = "leaderboard-data.json";
+// ───────────────────────────────────────────────────────────────────────────
+ 
+let isAdmin  = false;
+let players  = [];
+let gistId   = localStorage.getItem("lb_gist_id")   || null;
+let ghToken  = localStorage.getItem("lb_gh_token")  || null;
+ 
+// ── GitHub Gist API ─────────────────────────────────────────────────────────
+async function loadFromGist() {
+  if (!ghToken || !gistId) { render(); return; }
+  try {
+    const res = await fetch(`https://api.github.com/gists/${gistId}`, {
+      headers: { Authorization: `token ${ghToken}`, Accept: "application/vnd.github.v3+json" }
+    });
+    if (!res.ok) throw new Error("load failed");
+    const data = await res.json();
+    const raw  = data.files?.[GIST_FILENAME]?.content;
+    if (raw) players = JSON.parse(raw);
+  } catch (e) { players = []; }
+  render();
+}
+ 
+async function saveToGist() {
+  if (!ghToken) return;
+  const body = {
+    description: "Festival Leaderboard · auto-updated",
+    public: false,
+    files: { [GIST_FILENAME]: { content: JSON.stringify(players, null, 2) } }
+  };
+  if (gistId) {
+    await fetch(`https://api.github.com/gists/${gistId}`, {
+      method: "PATCH",
+      headers: { Authorization: `token ${ghToken}`, "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    });
+  } else {
+    const res  = await fetch("https://api.github.com/gists", {
+      method: "POST",
+      headers: { Authorization: `token ${ghToken}`, "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    });
+    const data = await res.json();
+    gistId = data.id;
+    localStorage.setItem("lb_gist_id", gistId);
+  }
+}
+ 
+// ── Auth ────────────────────────────────────────────────────────────────────
+function toggleLogin() {
+  const c = document.getElementById("loginCard");
+  c.style.display = c.style.display === "none" ? "block" : "none";
+  if (c.style.display === "block") document.getElementById("pw").focus();
+}
+function closeLogin() {
+  document.getElementById("loginCard").style.display = "none";
+}
+ 
+function doLogin() {
+  const pw  = document.getElementById("pw").value;
+  const tok = document.getElementById("ghTok").value.trim();
+  const err = document.getElementById("loginErr");
+  err.textContent = "";
+  if (pw !== ADMIN_PASSWORD) { err.textContent = "Wrong password."; return; }
+  if (!tok)                  { err.textContent = "Paste your GitHub token."; return; }
+  ghToken = tok;
+  localStorage.setItem("lb_gh_token", tok);
+  isAdmin = true;
+  document.getElementById("loginCard").style.display  = "none";
+  document.getElementById("adminCard").style.display  = "block";
+  document.getElementById("adminBadge").style.display = "inline";
+  document.getElementById("loginBtn").style.display   = "none";
+  document.getElementById("logoutBtn").style.display  = "inline";
+  document.getElementById("headerSub").textContent    = "Logged in as admin";
+  loadFromGist();
+}
+ 
+function doLogout() {
+  isAdmin = false;
+  document.getElementById("adminCard").style.display  = "none";
+  document.getElementById("adminBadge").style.display = "none";
+  document.getElementById("loginBtn").style.display   = "inline";
+  document.getElementById("logoutBtn").style.display  = "none";
+  document.getElementById("headerSub").textContent    = "Live rankings · Updated in real time";
+  render();
+}
+ 
+// ── Player actions ──────────────────────────────────────────────────────────
+async function addPlayer() {
+  const name  = document.getElementById("newName").value.trim();
+  const score = parseInt(document.getElementById("newScore").value) || 0;
+  const err   = document.getElementById("addErr");
+  err.textContent = "";
+  if (!name) { err.textContent = "Enter a player name."; return; }
+  if (players.find(p => p.name.toLowerCase() === name.toLowerCase())) {
+    err.textContent = "That name already exists."; return;
+  }
+  players.push({ id: Date.now(), name, score });
+  document.getElementById("newName").value  = "";
+  document.getElementById("newScore").value = "";
+  render();
+  setSaving("Saving…");
+  await saveToGist();
+  setSaving("✓ Saved to Gist");
+  setTimeout(() => setSaving(""), 2500);
+}
+ 
+async function removePlayer(id) {
+  players = players.filter(p => p.id !== id);
+  render();
+  setSaving("Saving…");
+  await saveToGist();
+  setSaving("✓ Saved to Gist");
+  setTimeout(() => setSaving(""), 2500);
+}
+ 
+function startEdit(id) {
+  const scoreEl = document.getElementById("score-" + id);
+  const p = players.find(x => x.id === id);
+  scoreEl.outerHTML = `
+    <div class="score-edit-wrap" id="score-${id}">
+      <input class="score-edit" type="number" id="edit-${id}" value="${p.score}" />
+      <button class="save-btn" onclick="saveEdit(${id})">✓</button>
+    </div>`;
+  document.getElementById("edit-" + id).focus();
+}
+ 
+async function saveEdit(id) {
+  const val = parseInt(document.getElementById("edit-" + id)?.value);
+  const p   = players.find(x => x.id === id);
+  if (p && !isNaN(val)) p.score = val;
+  render();
+  setSaving("Saving…");
+  await saveToGist();
+  setSaving("✓ Saved to Gist");
+  setTimeout(() => setSaving(""), 2500);
+}
+ 
+function setSaving(msg) {
+  const el = document.getElementById("saveStatus");
+  if (el) el.textContent = msg;
+}
+ 
+// ── Render ──────────────────────────────────────────────────────────────────
+function initials(name) {
+  return name.split(/\s+/).map(w => w[0] || "").join("").toUpperCase().slice(0, 2) || "?";
+}
+ 
+function render() {
+  const sorted = [...players].sort((a, b) => b.score - a.score);
+  const wrap   = document.getElementById("boardWrap");
+ 
+  if (!sorted.length) {
+    wrap.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">🏆</div>
+        <div class="empty-text">${isAdmin
+          ? "Add the first player above to get started."
+          : "No players yet — check back soon!"
+        }</div>
+      </div>`;
+    return;
+  }
+ 
+  const posClass = i => ["p1","p2","p3"][i] ?? "pn";
+  const rowClass = i => ["rank-1","rank-2","rank-3"][i] ?? "";
+  const medal    = i => ["🥇","🥈","🥉"][i] ?? String(i + 1);
+ 
+  wrap.innerHTML = sorted.map((p, i) => `
+    <div class="lb-row ${rowClass(i)}" style="animation-delay:${(i * 0.04).toFixed(2)}s">
+      <div class="lb-pos ${posClass(i)}">${medal(i)}</div>
+      <div class="lb-avatar">${initials(p.name)}</div>
+      <div class="lb-name">${p.name}</div>
+      <div class="lb-score ${posClass(i)}" id="score-${p.id}">${p.score.toLocaleString()}</div>
+      ${isAdmin ? `
+        <div class="lb-actions">
+          <button class="icon-btn" onclick="startEdit(${p.id})" title="Edit score">✎</button>
+          <button class="icon-btn del" onclick="removePlayer(${p.id})" title="Remove">✕</button>
+        </div>` : ""}
+    </div>`).join("");
+}
+ 
+// ── Init ────────────────────────────────────────────────────────────────────
+(async () => {
+  if (ghToken && gistId) {
+    await loadFromGist();
+  } else {
+    document.getElementById("boardWrap").innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">🏆</div>
+        <div class="empty-text">Admin must log in to set up the leaderboard.</div>
+      </div>`;
+  }
+})();
+</script>
+</body>
+</html>
+ 
