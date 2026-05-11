@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Language Festival Leaderboard</title>
+  <title>Festival Leaderboard</title>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap" rel="stylesheet">
   <style>
     :root {
@@ -382,7 +382,7 @@
  
   <!-- Header -->
   <header class="header">
-    <p class="header-eyebrow">✦ &nbsp; ABC Language Festival &nbsp; ✦</p>
+    <p class="header-eyebrow">✦ &nbsp; Festival Edition &nbsp; ✦</p>
     <h1>Leaderboard</h1>
     <p class="header-sub" id="headerSub">Live rankings · Updated in real time</p>
   </header>
@@ -406,7 +406,7 @@
     <p class="err" id="loginErr"></p>
     <div class="notice">
       <strong>How to get a safe token:</strong><br>
-      Go to <a href="https://github.com/settings/tokens/new" target="_blank">github.com/settings/tokens/new</a> → check <strong>only the "gist" scope</strong> → generate. This token can only read/write Gists — it cannot access any of your repositories or other projects. Your token is saved in this browser only.
+      Go to <a href="https://github.com/settings/tokens" target="_blank">github.com/settings/tokens</a> → click "Generate new token (classic)" → check <strong>only "repo"</strong> scope → generate. Your token is saved in this browser only and syncs all data to GitHub instantly.
     </div>
   </div>
  
@@ -459,53 +459,65 @@
  
 <script>
 // ── CONFIG ─────────────────────────────────────────────────────────────────
-// Change this to your desired admin password before uploading to GitHub Pages
 const ADMIN_PASSWORD = "festivalabc123";
-const GIST_FILENAME  = "leaderboard-data.json";
+const GH_OWNER = "itzpertote";      // CHANGE: your GitHub username
+const GH_REPO  = "festboard";        // CHANGE: your repo name
+const DATA_FILE = "data/leaderboard.json";
 // ───────────────────────────────────────────────────────────────────────────
  
 let isAdmin  = false;
 let players  = [];
-let gistId   = localStorage.getItem("lb_gist_id")   || null;
-let ghToken  = localStorage.getItem("lb_gh_token")  || null;
+let ghToken  = localStorage.getItem("lb_gh_token") || null;
  
-// ── GitHub Gist API ─────────────────────────────────────────────────────────
-async function loadFromGist() {
-  if (!ghToken || !gistId) { render(); return; }
+// ── GitHub Repository API ──────────────────────────────────────────────────
+async function ghReadFile(filePath) {
+  if (!ghToken) return null;
   try {
-    const res = await fetch(`https://api.github.com/gists/${gistId}`, {
-      headers: { Authorization: `token ${ghToken}`, Accept: "application/vnd.github.v3+json" }
+    const res = await fetch(`https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${filePath}`, {
+      headers: { Authorization: `Bearer ${ghToken}`, Accept: "application/vnd.github+json" }
     });
-    if (!res.ok) throw new Error("load failed");
-    const data = await res.json();
-    const raw  = data.files?.[GIST_FILENAME]?.content;
-    if (raw) players = JSON.parse(raw);
-  } catch (e) { players = []; }
+    if (res.status === 404) return { content: [], sha: null };
+    if (!res.ok) throw new Error(`GitHub error: ${res.status}`);
+    const json = await res.json();
+    return { content: JSON.parse(atob(json.content.replace(/\n/g, ""))), sha: json.sha };
+  } catch (e) { console.error("Read error:", e); return null; }
+}
+
+async function ghWriteFile(filePath, data, sha) {
+  if (!ghToken) throw new Error("Not authenticated");
+  const body = {
+    message: `Update leaderboard [${new Date().toISOString().slice(0, 10)}]`,
+    content: btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2))))
+  };
+  if (sha) body.sha = sha;
+  const res = await fetch(`https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${filePath}`, {
+    method: "PUT",
+    headers: { Authorization: `Bearer ${ghToken}`, Accept: "application/vnd.github+json", "Content-Type": "application/json" },
+    body: JSON.stringify(body)
+  });
+  if (!res.ok) { const e = await res.json(); throw new Error(e.message || `GitHub error: ${res.status}`); }
+}
+
+async function loadFromGitHub() {
+  if (!ghToken) { render(); return; }
+  try {
+    const data = await ghReadFile(DATA_FILE);
+    players = data?.content || [];
+  } catch (e) { players = []; console.error("Load failed:", e); }
   render();
 }
- 
-async function saveToGist() {
+
+async function saveToGitHub() {
   if (!ghToken) return;
-  const body = {
-    description: "Festival Leaderboard · auto-updated",
-    public: false,
-    files: { [GIST_FILENAME]: { content: JSON.stringify(players, null, 2) } }
-  };
-  if (gistId) {
-    await fetch(`https://api.github.com/gists/${gistId}`, {
-      method: "PATCH",
-      headers: { Authorization: `token ${ghToken}`, "Content-Type": "application/json" },
-      body: JSON.stringify(body)
-    });
-  } else {
-    const res  = await fetch("https://api.github.com/gists", {
-      method: "POST",
-      headers: { Authorization: `token ${ghToken}`, "Content-Type": "application/json" },
-      body: JSON.stringify(body)
-    });
-    const data = await res.json();
-    gistId = data.id;
-    localStorage.setItem("lb_gist_id", gistId);
+  try {
+    const cur = await ghReadFile(DATA_FILE);
+    await ghWriteFile(DATA_FILE, players, cur?.sha || null);
+    setSaving("✓ Saved to GitHub");
+    setTimeout(() => setSaving(""), 2500);
+  } catch (e) { 
+    console.error("Save failed:", e);
+    setSaving("✕ Save failed: " + e.message);
+    setTimeout(() => setSaving(""), 3000);
   }
 }
  
@@ -535,7 +547,7 @@ function doLogin() {
   document.getElementById("loginBtn").style.display   = "none";
   document.getElementById("logoutBtn").style.display  = "inline";
   document.getElementById("headerSub").textContent    = "Logged in as admin";
-  loadFromGist();
+  loadFromGitHub();
 }
  
 function doLogout() {
@@ -563,8 +575,8 @@ async function addPlayer() {
   document.getElementById("newScore").value = "";
   render();
   setSaving("Saving…");
-  await saveToGist();
-  setSaving("✓ Saved to Gist");
+  await saveToGitHub();
+  setSaving("✓ Saved to GitHub");
   setTimeout(() => setSaving(""), 2500);
 }
  
@@ -572,8 +584,8 @@ async function removePlayer(id) {
   players = players.filter(p => p.id !== id);
   render();
   setSaving("Saving…");
-  await saveToGist();
-  setSaving("✓ Saved to Gist");
+  await saveToGitHub();
+  setSaving("✓ Saved to GitHub");
   setTimeout(() => setSaving(""), 2500);
 }
  
@@ -594,8 +606,8 @@ async function saveEdit(id) {
   if (p && !isNaN(val)) p.score = val;
   render();
   setSaving("Saving…");
-  await saveToGist();
-  setSaving("✓ Saved to Gist");
+  await saveToGitHub();
+  setSaving("✓ Saved to GitHub");
   setTimeout(() => setSaving(""), 2500);
 }
  
@@ -645,15 +657,7 @@ function render() {
  
 // ── Init ────────────────────────────────────────────────────────────────────
 (async () => {
-  if (ghToken && gistId) {
-    await loadFromGist();
-  } else {
-    document.getElementById("boardWrap").innerHTML = `
-      <div class="empty-state">
-        <div class="empty-icon">🏆</div>
-        <div class="empty-text">Admin must log in to set up the leaderboard.</div>
-      </div>`;
-  }
+  render();
 })();
 </script>
 </body>
