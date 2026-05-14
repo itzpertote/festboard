@@ -498,6 +498,19 @@ async function ghWriteFile(filePath, data, sha) {
   if (!res.ok) { const e = await res.json(); throw new Error(e.message || `GitHub error: ${res.status}`); }
 }
 
+async function loadPublicData() {
+  try {
+    // Use raw GitHub URL for public read (no auth needed, no rate limit issues)
+    const rawUrl = `https://raw.githubusercontent.com/${GH_OWNER}/${GH_REPO}/main/${DATA_FILE}`;
+    const res = await fetch(rawUrl);
+    if (res.ok) {
+      players = await res.json();
+      return true;
+    }
+  } catch (e) { console.error("Public load failed:", e); }
+  return false;
+}
+
 async function loadFromGitHub() {
   if (!ghToken) { render(); return; }
   try {
@@ -512,6 +525,9 @@ async function saveToGitHub() {
   try {
     const cur = await ghReadFile(DATA_FILE);
     await ghWriteFile(DATA_FILE, players, cur?.sha || null);
+    // After save, reload public data so everyone sees fresh version
+    await loadPublicData();
+    render();
     setSaving("✓ Saved to GitHub");
     setTimeout(() => setSaving(""), 2500);
   } catch (e) { 
@@ -657,6 +673,8 @@ function render() {
  
 // ── Init ────────────────────────────────────────────────────────────────────
 (async () => {
+  // Load data for public viewers (no auth needed)
+  await loadPublicData();
   render();
 })();
 </script>
