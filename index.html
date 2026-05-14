@@ -504,30 +504,24 @@ async function ghWriteFile(filePath, data, sha) {
 }
 
 async function loadPublicData() {
-  // PRIMARY: GitHub Contents API — no token needed for public repos, always live (no CDN cache)
+  // Use a timestamp to force GitHub to bypass its 5-minute cache
+  const cacheBuster = `?t=${Date.now()}`;
+  
   try {
     const res = await fetch(
-      `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${DATA_FILE}`,
+      `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${DATA_FILE}${cacheBuster}`,
       { headers: { Accept: "application/vnd.github+json" } }
     );
+    
     if (res.ok) {
       const json = await res.json();
       players = JSON.parse(atob(json.content.replace(/\n/g, "")));
+      render(); // Update the UI immediately after fetching
       return true;
     }
-  } catch (e) { console.error("API load failed:", e); }
-
-  // FALLBACK: raw URL (CDN-cached, may be stale, but better than nothing)
-  try {
-    const res = await fetch(
-      `https://raw.githubusercontent.com/${GH_OWNER}/${GH_REPO}/main/${DATA_FILE}`
-    );
-    if (res.ok) {
-      players = await res.json();
-      return true;
-    }
-  } catch (e) { console.error("Raw load failed:", e); }
-
+  } catch (e) { 
+    console.error("Fetch failed:", e); 
+  }
   return false;
 }
 
