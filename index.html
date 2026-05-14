@@ -495,7 +495,12 @@ async function ghWriteFile(filePath, data, sha) {
     headers: { Authorization: `Bearer ${ghToken}`, Accept: "application/vnd.github+json", "Content-Type": "application/json" },
     body: JSON.stringify(body)
   });
-  if (!res.ok) { const e = await res.json(); throw new Error(e.message || `GitHub error: ${res.status}`); }
+  // FIX Bug 3: safely parse error body — GitHub sometimes returns HTML on certain errors
+  if (!res.ok) {
+    let msg = `GitHub error: ${res.status}`;
+    try { const e = await res.json(); msg = e.message || msg; } catch {}
+    throw new Error(msg);
+  }
 }
 
 async function loadPublicData() {
@@ -525,9 +530,10 @@ async function saveToGitHub() {
   try {
     const cur = await ghReadFile(DATA_FILE);
     await ghWriteFile(DATA_FILE, players, cur?.sha || null);
-    // After save, reload public data so everyone sees fresh version
-    await loadPublicData();
-    render();
+    // FIX Bug 1: do NOT call loadPublicData() here.
+    // raw.githubusercontent.com is CDN-cached (can lag 5+ min), so it returns
+    // the OLD data and overwrites `players`, reverting everything the admin just did.
+    // The in-memory `players` array is already correct — just confirm success.
     setSaving("✓ Saved to GitHub");
     setTimeout(() => setSaving(""), 2500);
   } catch (e) { 
@@ -591,9 +597,8 @@ async function addPlayer() {
   document.getElementById("newScore").value = "";
   render();
   setSaving("Saving…");
+  // FIX Bug 2: let saveToGitHub() manage the status message — no duplicate calls
   await saveToGitHub();
-  setSaving("✓ Saved to GitHub");
-  setTimeout(() => setSaving(""), 2500);
 }
  
 async function removePlayer(id) {
@@ -601,8 +606,6 @@ async function removePlayer(id) {
   render();
   setSaving("Saving…");
   await saveToGitHub();
-  setSaving("✓ Saved to GitHub");
-  setTimeout(() => setSaving(""), 2500);
 }
  
 function startEdit(id) {
@@ -623,8 +626,6 @@ async function saveEdit(id) {
   render();
   setSaving("Saving…");
   await saveToGitHub();
-  setSaving("✓ Saved to GitHub");
-  setTimeout(() => setSaving(""), 2500);
 }
  
 function setSaving(msg) {
@@ -680,4 +681,3 @@ function render() {
 </script>
 </body>
 </html>
- 
